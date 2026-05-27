@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fr" data-fr-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moteur de Recherche — Catalogue de données MEF</title>
+  
+  <!-- DSFR Design System Stylesheets from official jsDelivr CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/dsfr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/utility/utility.min.css">
+  
+  <!-- Custom extensions stylesheet for layout and print -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- DSFR JS Module for theme management and accessibility -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/dsfr.module.min.js"></script>
+  
+  <!-- Grist Custom Widget API -->
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+</head>
+<body>
+
+  <!-- Hidden Print Container for Compliance Forms -->
+  <div id="compliance-print-shell"></div>
+
+  <!-- Primary Application Wrapper -->
+  <div id="app-container" class="fr-container-fluid">
+    
+    <!-- DSFR Header & Marianne Brand Block -->
+    <header class="fr-header" role="banner" id="app-header">
+      <div class="fr-header__body">
+        <div class="fr-header__body-row">
+          
+          <!-- Republican Tricolor Block Logo -->
+          <div class="fr-header__brand fr-envelop">
+            <div class="fr-header__brand-top">
+              <div class="fr-header__logo">
+                <p class="fr-logo">
+                  République
+                  <br>Française
+                </p>
+              </div>
+            </div>
+            <div class="fr-header__service">
+              <a href="#" title="Accueil - Catalogue de données - Ministère de l'Économie">
+                <p class="fr-header__service-title">Catalogue de Données</p>
+              </a>
+              <p class="fr-header__service-tagline">Bercy Hub &amp; Administrateur des Données</p>
+            </div>
+          </div>
+          
+          <!-- Actions & Badges -->
+          <div class="fr-header__tools">
+            <div class="fr-header__tools-links">
+              <ul class="fr-btns-group">
+                <li>
+                  <span id="mode-badge" class="fr-badge fr-badge--purple-glycine fr-badge--no-icon">HORS INTÉGRATION GRIST</span>
+                </li>
+                <li>
+                  <button id="theme-toggle" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-moon-fill">Mode Sombre</button>
+                </li>
+              </ul>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Widget Workspace -->
+    <main class="widget-body">
+      
+      <!-- DSFR Search Bar Component -->
+      <section class="search-section fr-my-2w">
+        <div class="fr-search-bar" id="header-search" role="search">
+          <label class="fr-label" for="search-bar">Rechercher</label>
+          <input class="fr-input" placeholder="Rechercher par titre, description, mots-clés..." type="search" id="search-bar">
+          <button class="fr-btn" title="Rechercher" id="search-submit">
+            Rechercher
+          </button>
+        </div>
+        
+        <div class="search-results-meta fr-mt-1v">
+          <span id="results-count" class="fr-text--xs fr-text-mention--grey">Chargement du catalogue de données...</span>
+        </div>
+      </section>
+
+      <!-- DSFR Filters Row (Grid columns) -->
+      <section class="filters-panel fr-grid-row fr-grid-row--gutters">
+        
+        <!-- Direction Select -->
+        <div class="fr-col-12 fr-col-sm-6 fr-col-md-3">
+          <div class="fr-select-group">
+            <label class="fr-label fr-sr-only" for="filter-direction">Direction</label>
+            <select class="fr-select" id="filter-direction">
+              <option value="" selected>📁 Chargement des directions...</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Sensitivity Select -->
+        <div class="fr-col-12 fr-col-sm-6 fr-col-md-3">
+          <div class="fr-select-group">
+            <label class="fr-label fr-sr-only" for="filter-sensitivity">Sensibilité</label>
+            <select class="fr-select" id="filter-sensitivity">
+              <option value="" selected>🔒 Chargement des sensibilités...</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Publication Status Select -->
+        <div class="fr-col-12 fr-col-sm-6 fr-col-md-3">
+          <div class="fr-select-group">
+            <label class="fr-label fr-sr-only" for="filter-publication">Publication</label>
+            <select class="fr-select" id="filter-publication">
+              <option value="" selected>📢 Chargement des régimes...</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Format Select -->
+        <div class="fr-col-12 fr-col-sm-6 fr-col-md-3">
+          <div class="fr-select-group">
+            <label class="fr-label fr-sr-only" for="filter-format">Format</label>
+            <select class="fr-select" id="filter-format">
+              <option value="" selected>⚙️ Chargement des formats...</option>
+            </select>
+          </div>
+        </div>
+        
+      </section>
+
+      <!-- DSFR Catalogue Cards List -->
+      <section id="catalog-list" class="catalog-list fr-my-2w">
+        <!-- Results generated dynamically -->
+      </section>
+      
+    </main>
+
+    <!-- Slide-in Detail Panel Drawer -->
+    <div id="detail-panel-overlay"></div>
+    <aside id="detail-panel">
+      <div class="panel-header">
+        <span id="detail-sensitivity-badge" class="fr-badge fr-badge--sm">Sensibilité</span>
+        <button id="panel-close" class="fr-btn fr-btn--close" title="Fermer le panneau"></button>
+      </div>
+      
+      <div class="panel-content fr-p-3v">
+        <h2 id="detail-title" class="fr-h4 detail-title">Jeu de données</h2>
+        <p id="detail-desc" class="fr-text--sm detail-desc"></p>
+        
+        <!-- Keyword Tag Group -->
+        <div class="fr-my-2w">
+          <ul id="detail-tags" class="fr-tags-group">
+            <!-- Dynamically populated -->
+          </ul>
+        </div>
+        
+        <div class="detail-divider fr-my-2w"></div>
+        
+        <!-- Collapsible 5 Levels Accordion Group -->
+        <div class="fr-accordions-group">
+          
+          <!-- Niveau 1 - Identification -->
+          <section class="fr-accordion" id="acc-n1">
+            <h3 class="fr-accordion__title">
+              <button class="fr-accordion__btn" aria-expanded="true" aria-controls="acc-n1-collapse">
+                Niveau 1 — Identification
+              </button>
+            </h3>
+            <div class="fr-collapse fr-collapse--expanded" id="acc-n1-collapse">
+              <div class="detail-attributes-list fr-p-2v">
+                <div class="attr-row">
+                  <span class="attr-label">Bureau Producteur</span>
+                  <span id="detail-bureau" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Point de Contact (BALF)</span>
+                  <span id="detail-contact-service" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">URL Dataset</span>
+                  <span id="detail-url" class="attr-value">N/A</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Niveau 2 - Classification -->
+          <section class="fr-accordion" id="acc-n2">
+            <h3 class="fr-accordion__title">
+              <button class="fr-accordion__btn" aria-expanded="false" aria-controls="acc-n2-collapse">
+                Niveau 2 — Classification
+              </button>
+            </h3>
+            <div class="fr-collapse" id="acc-n2-collapse">
+              <div class="detail-attributes-list fr-p-2v">
+                <div class="attr-row">
+                  <span class="attr-label">Statut Publication</span>
+                  <span id="detail-statut-publication" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Sensibilité</span>
+                  <span id="detail-sensibilite" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Domaine Fonctionnel</span>
+                  <span id="detail-domaine" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Langue</span>
+                  <span id="detail-langue" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Couverture Géo</span>
+                  <span id="detail-couverture-geo" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Période Couverture</span>
+                  <span id="detail-periode-couverture" class="attr-value">N/A</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Niveau 3 - Organisation -->
+          <section class="fr-accordion" id="acc-n3">
+            <h3 class="fr-accordion__title">
+              <button class="fr-accordion__btn" aria-expanded="false" aria-controls="acc-n3-collapse">
+                Niveau 3 — Organisation
+              </button>
+            </h3>
+            <div class="fr-collapse" id="acc-n3-collapse">
+              <div class="detail-attributes-list fr-p-2v">
+                <div class="attr-row">
+                  <span class="attr-label">Contact Principal</span>
+                  <span id="detail-contact-principal" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Commanditaire</span>
+                  <span id="detail-commanditaire" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Fréquence de Mise à Jour</span>
+                  <span id="detail-frequence" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Système d'Information</span>
+                  <span id="detail-si" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Date Publication</span>
+                  <span id="detail-date-publication" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Dernière Mise à Jour</span>
+                  <span id="detail-date-maj" class="attr-value">N/A</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Niveau 4 - Technique & Distribution -->
+          <section class="fr-accordion" id="acc-n4">
+            <h3 class="fr-accordion__title">
+              <button class="fr-accordion__btn" aria-expanded="false" aria-controls="acc-n4-collapse">
+                Niveau 4 — Technique &amp; Distribution
+              </button>
+            </h3>
+            <div class="fr-collapse" id="acc-n4-collapse">
+              <div class="detail-attributes-list fr-p-2v">
+                <div class="attr-row">
+                  <span class="attr-label">Téléchargement Direct</span>
+                  <span id="detail-url-telechargement" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Format des Données</span>
+                  <span id="detail-formats" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Licence Juridique</span>
+                  <span id="detail-licence" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Volumétrie</span>
+                  <span id="detail-volumetrie" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">Données Ouvertes</span>
+                  <span id="detail-open-data-badge" class="attr-value">N/A</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-label">URL Open Data</span>
+                  <span id="detail-url-open-data" class="attr-value">N/A</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Niveau 5 - Qualification -->
+          <section class="fr-accordion" id="acc-n5">
+            <h3 class="fr-accordion__title">
+              <button class="fr-accordion__btn" aria-expanded="false" aria-controls="acc-n5-collapse">
+                Niveau 5 — Qualification
+              </button>
+            </h3>
+            <div class="fr-collapse" id="acc-n5-collapse">
+              <div class="detail-attributes-list fr-p-2v">
+                <div class="attr-row">
+                  <span class="attr-label">Statut Qualification</span>
+                  <span id="detail-statut-qualification" class="attr-value">N/A</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+      
+      <!-- Compliance Exporters -->
+      <div class="panel-footer-actions">
+        <button id="print-rip-btn" class="fr-btn fr-btn--icon-left fr-icon-printer-fill btn-action">Imprimer</button>
+        <button id="print-rgpd-btn" class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-lock-fill btn-action" style="display: none;">Registre RGPD</button>
+      </div>
+    </aside>
+    
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

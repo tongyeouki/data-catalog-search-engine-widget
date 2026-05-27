@@ -1,0 +1,444 @@
+/*
+ * CSS Extension Stylesheet — Grist Search Widget (DSFR Compliant)
+ * Custom layout mappings extending the French Government Design System (DSFR).
+ */
+
+/* Explicit DSFR Theme Color Overrides (Ensures correct light-theme rendering regardless of OS prefers-color-scheme) */
+:root[data-fr-theme="light"] {
+  --background-flat-grey: #f6f6f6 !important;
+  --background-flat-grey-hover: #e3e3e3 !important;
+  --background-alt-grey: #f6f6f6 !important;
+  --border-default-grey: #e7e7e7 !important;
+  --text-title-grey: #161616 !important;
+  --text-mention-grey: #666666 !important;
+  --background-raised-grey: #ffffff !important;
+  --background-contrast-grey: #eeeeee !important;
+  --background-default-grey: #ffffff !important;
+}
+
+:root[data-fr-theme="dark"] {
+  --background-flat-grey: #1b2436 !important;
+  --background-alt-grey: #242f48 !important;
+  --border-default-grey: #2e3e56 !important;
+  --text-title-grey: #ffffff !important;
+  --text-mention-grey: #b5c4d6 !important;
+  --background-raised-grey: #161e2d !important;
+  --background-contrast-grey: #0e1420 !important;
+  --background-default-grey: #090d16 !important;
+}
+
+/* 1. Layout Adjustments & Scroll Containers */
+body {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#app-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#app-header {
+  flex-shrink: 0;
+  box-shadow: 0 1px 0 0 var(--border-default-grey);
+}
+
+.widget-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Scrollable catalog results list */
+.catalog-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+}
+
+/* 2. Custom DSFR Card Enhancements */
+.dataset-card {
+  background-color: var(--background-flat-grey);
+  border: 1px solid var(--border-default-grey);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.dataset-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: transparent;
+  transition: background-color 0.2s ease;
+}
+
+/* Specific colors highlighting left borders depending on sensitivity */
+.dataset-card[data-sensitivity="open-data"]::before {
+  background-color: var(--text-label-green-emeraude);
+}
+.dataset-card[data-sensitivity="diffusion-restreinte"]::before {
+  background-color: var(--text-label-blue-france);
+}
+.dataset-card[data-sensitivity="donnees-personnelles-rgpd"]::before {
+  background-color: var(--text-label-purple-glycine);
+}
+.dataset-card[data-sensitivity="diffusion-contrainee"]::before {
+  background-color: var(--text-label-yellow-tournesol);
+}
+.dataset-card[data-sensitivity="confidentiel"]::before {
+  background-color: var(--text-label-red-marianne);
+}
+
+.dataset-card:hover {
+  background-color: var(--background-alt-grey);
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.dataset-card.active-record {
+  border-color: var(--border-active-blue-france);
+  background-color: var(--background-active-blue-france-hover);
+  box-shadow: 0 0 10px rgba(0, 0, 145, 0.1);
+}
+
+.card-title {
+  color: var(--text-title-grey);
+  margin-bottom: 0;
+}
+
+.card-description {
+  color: var(--text-mention-grey);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-mention-grey);
+  border-top: 1px solid var(--border-default-grey);
+  padding-top: 8px;
+}
+
+.card-producer {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70%;
+}
+
+.card-format {
+  background: var(--background-contrast-grey);
+  padding: 2px 6px;
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+/* 3. Sliding Detail Drawer */
+#detail-panel-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 1500;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+#detail-panel {
+  position: absolute;
+  top: 0;
+  right: -100%;
+  width: 100%;
+  max-width: 500px;
+  height: 100%;
+  background: var(--background-raised-grey);
+  border-left: 1px solid var(--border-default-grey);
+  box-shadow: 0 0 24px 0 rgba(0, 0, 0, 0.15);
+  z-index: 1501;
+  display: flex;
+  flex-direction: column;
+  transition: right 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+#detail-panel.open {
+  right: 0;
+}
+
+.panel-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-default-grey);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--background-contrast-grey);
+}
+
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-title {
+  color: var(--text-title-grey);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.detail-desc {
+  color: var(--text-mention-grey);
+  line-height: 1.5;
+}
+
+.detail-divider {
+  height: 1px;
+  background: var(--border-default-grey);
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-title {
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+/* Variable Attributes rows */
+.detail-attributes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.attr-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border-default-grey);
+}
+
+.attr-label {
+  color: var(--text-mention-grey);
+}
+
+.attr-value {
+  font-weight: bold;
+  color: var(--text-title-grey);
+  text-align: right;
+  max-width: 60%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Collapsible sections */
+.detail-section-details {
+  border: 1px solid var(--border-default-grey);
+  border-radius: 4px;
+  background: var(--background-alt-grey);
+  overflow: hidden;
+}
+
+.section-title-details {
+  padding: 12px;
+  user-select: none;
+  cursor: pointer;
+  background: var(--background-contrast-grey);
+  font-weight: bold;
+  outline: none;
+}
+
+.section-title-details:hover {
+  background-color: var(--background-contrast-grey-hover);
+}
+
+/* Variable table adjustments inside drawer with overflow scroll */
+.detail-section-details .fr-table {
+  overflow-x: auto !important;
+  display: block;
+  width: 100%;
+}
+
+.panel-variables-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 400px; /* Assure que le dictionnaire reste lisible en faisant défiler */
+}
+
+.panel-variables-table th, .panel-variables-table td {
+  padding: 8px 12px !important;
+  font-size: 0.8rem;
+}
+
+/* Actions in drawer footer */
+.panel-footer-actions {
+  padding: 16px;
+  border-top: 1px solid var(--border-default-grey);
+  background: var(--background-contrast-grey);
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.btn-action {
+  flex: 1;
+  justify-content: center;
+}
+
+/* 4. Custom Compliance Sheet Templates for Printing */
+#compliance-print-shell {
+  display: none;
+}
+
+@media print {
+  body {
+    background-color: #fff !important;
+    color: #000 !important;
+    font-family: 'Inter', Arial, sans-serif !important;
+  }
+  
+  #app-container, #detail-panel, #detail-panel-overlay {
+    display: none !important;
+  }
+  
+  #compliance-print-shell {
+    display: block !important;
+    padding: 1.5cm !important;
+    width: 100% !important;
+  }
+  
+  .print-header {
+    border-bottom: 2px solid #000;
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .print-logo {
+    font-size: 13pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-family: 'Outfit', sans-serif;
+  }
+  
+  .print-document-type {
+    font-size: 9pt;
+    border: 1px solid #000;
+    padding: 2px 6px;
+    font-weight: bold;
+  }
+  
+  .print-title {
+    font-size: 18pt;
+    margin-bottom: 12px;
+    line-height: 1.2;
+    font-family: 'Outfit', sans-serif;
+  }
+  
+  .print-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  
+  .print-meta-cell {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 4px;
+  }
+  
+  .print-label {
+    font-size: 8pt;
+    color: #666;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+  
+  .print-value {
+    font-size: 10pt;
+    font-weight: bold;
+  }
+  
+  .print-section {
+    margin-bottom: 20px;
+    page-break-inside: avoid;
+  }
+  
+  .print-section-title {
+    font-size: 10pt;
+    border-bottom: 1px solid #000;
+    padding-bottom: 2px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+  
+  .print-dictionary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+  }
+  
+  .print-dictionary-table th, .print-dictionary-table td {
+    border: 1px solid #000;
+    padding: 6px 8px;
+    text-align: left;
+    font-size: 9pt;
+  }
+  
+  .print-dictionary-table th {
+    background-color: #f6f6f6 !important;
+    font-weight: bold;
+  }
+  
+  .print-footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    border-top: 1px solid #ccc;
+    padding-top: 6px;
+    font-size: 7.5pt;
+    color: #666;
+    text-align: center;
+  }
+}

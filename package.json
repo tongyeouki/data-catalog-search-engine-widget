@@ -1,0 +1,22 @@
+{
+  "name": "mef-data-catalog-search-engine",
+  "version": "1.0.0",
+  "description": "Moteur de recherche du catalogue de données MEF - Grist Custom Widget",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "grist",
+    "widget",
+    "data-catalog",
+    "search-engine"
+  ],
+  "author": "Paul",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.2.0"
+  }
+}
