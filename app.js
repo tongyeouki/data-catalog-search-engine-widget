@@ -12,6 +12,21 @@ let activeFilters = {
   format: ''
 };
 
+// --- Reference Tables Cache (id → display label) ---
+// Populated by loadRefTables() once Grist is connected.
+// In standalone mode, filled from MOCK_ENTITIES for Bureau_Producteur only.
+const refTables = {
+  Ref_Entite: {},          // id → Chemin (Bureau_Producteur)
+  Ref_Theme: {},           // id → valeur (Domaine_Fonctionnel)
+  Ref_Format: {},          // id → valeur (Format_Donnees)
+  Ref_Frequency: {},       // id → valeur (Frequence_MaJ)
+  Ref_GeographicalCoverage: {}, // id → valeur (Couverture_Geo)
+  Ref_InformationSystem: {},    // id → SI (Systeme_d_Information)
+  Ref_Licence: {},         // id → valeur (Licence)
+  Ref_Utilisateur: {},     // id → "Prenom Nom" (Contact)
+  Ref_ContactPoint: {},    // id → Nom or Mail (Contact_Service)
+};
+
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
   setupSearchInput();
@@ -68,6 +83,9 @@ function initializeGristWidget() {
       ]
     });
     
+    // Load all referenced tables once (resolves foreign key IDs → display labels)
+    loadRefTables();
+
     // Subscribe to Grist table updates
     grist.onRecords((rawRecords) => {
       isGristMode = true;
@@ -134,6 +152,141 @@ function transformGristRecords(records) {
   }
   
   return [];
+}
+
+// --- Reference Table Resolver (ported from data-catalog-form/js/grist-widget.js) ---
+
+/**
+ * Extracts a numeric row ID from a Grist Reference value.
+ * Handles: plain number, ["R", "TableName", id], { id: n }, string numbers.
+ */
+function parseGristRefId(value) {
+  if (value === null || value === undefined || value === 0) return null;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string' && !isNaN(Number(value))) return Number(value);
+  if (Array.isArray(value)) {
+    if (value[0] === 'R' && value.length >= 3) return Number(value[2]);
+    const last = value[value.length - 1];
+    if (typeof last === 'number') return last;
+    if (last != null && !isNaN(Number(last))) return Number(last);
+  }
+  if (typeof value === 'object' && value.id != null) return Number(value.id);
+  return null;
+}
+
+/**
+ * Extracts an array of numeric IDs from a Grist ReferenceList / ChoiceList.
+ * Handles: ["L", ["R", t, id], ...], ["L", id, ...], [id, ...]
+ */
+function parseGristRefListIds(value) {
+  if (value === null || value === undefined) return [];
+  if (!Array.isArray(value)) {
+    const id = parseGristRefId(value);
+    return id !== null ? [id] : [];
+  }
+  const list = value[0] === 'L' ? value.slice(1) : value;
+  return list.map(parseGristRefId).filter(id => id !== null);
+}
+
+/**
+ * Fetches a Grist table and returns raw columnar data.
+ * Uses grist.docApi.fetchTable (same as the companion form).
+ */
+function fetchRefTable(name) {
+  if (typeof grist === 'undefined') return Promise.reject(new Error('No Grist'));
+  if (grist.docApi && typeof grist.docApi.fetchTable === 'function') {
+    return grist.docApi.fetchTable(name);
+  }
+  if (typeof grist.fetchTable === 'function') {
+    return grist.fetchTable(name);
+  }
+  return Promise.reject(new Error('grist.docApi.fetchTable not available'));
+}
+
+/**
+ * Populates refTables cache for all 9 referenced tables.
+ * Silently ignores failures (the widget degrades gracefully).
+ */
+function loadRefTables() {
+  // Ref_Entite → Chemin (Bureau_Producteur, Contact_Service)
+  fetchRefTable('Ref_Entite').then(data => {
+    const map = {};
+    for (let i = 0; i < data.id.length; i++) {
+      map[data.id[i]] = data.Chemin?.[i] || data.Nom?.[i] || data.Sigle?.[i] || String(data.id[i]);
+    }
+    refTables.Ref_Entite = map;
+    console.log('[RefTables] Ref_Entite:', Object.keys(map).length, 'entries');
+  }).catch(e => console.warn('[RefTables] Ref_Entite failed:', e.message));
+
+  // Ref_Theme → valeur (Domaine_Fonctionnel)
+  fetchRefTable('Ref_Theme').then(data => {
+    const map = {};
+    for (let i = 0; i < data.id.length; i++) map[data.id[i]] = data.valeur?.[i] || String(data.id[i]);
+    refTables.Ref_Theme = map;
+    console.log('[RefTables] Ref_Theme:', Object.keys(map).length, 'entries');
+  }).catch(e => console.warn('[RefTables] Ref_Theme failed:', e.message));
+
+  // Ref_Format → valeur (Format_Donnees)
+  fetchRefTable('Ref_Format').then(data => {
+    const map = {};
+    for (let i = 0; i < data.id.length; i++) map[data.id[i]] = data.valeur?.[i] || String(data.id[i]);
+    refTables.Ref_Format = map;
+    console.log('[RefTables] Ref_Format:', Object.keys(map).length, 'entries');
+  }).catch(e => console.warn('[RefTables] Ref_Format failed:', e.message));
+
+  // Ref_Frequency → valeur (Frequence_MaJ)
+  fetchRefTable('Ref_Frequency').then(data => {
+    const map = {};
+    for (let i = 0; i < data.id.length; i++) map[data.id[i]] = data.valeur?.[i] || String(data.id[i]);
+    refTables.Ref_Frequency = map;
+    console.log('[RefTables] Ref_Frequency:', Object.keys(map).length, 'entries');
+  }).catch(e => console.warn('[RefTables] Ref_Frequency failed:', e.message));
+
+  // Ref_GeographicalCoverage → valeur (Couverture_Geo)
+  fetchRefTable('Ref_GeographicalCoverage').then(data => {
+    const map = {};
+    for (let i = 0; i < data.id.length; i++) map[data.id[i]] = data.valeur?.[i] || String(data.id[i]);
+    refTables.Ref_GeographicalCoverage = map;
+    console.log('[RefTables] Ref_GeographicalCoverage:', Object.keys(map).length, 'entries');
+  }).catch(e => console.warn('[RefTables] Ref_GeographicalCoverage failed:', e.message));
+
+  // Ref_InformationSystem → SI (Systeme_d_Information)
+  fetchRefTable('Ref_InformationSystem').then(data => {
+    const map = {};
+    for (let i = 0; i < data.id.length; i++) map[data.id[i]] = data.SI?.[i] || String(data.id[i]);
+    refTables.Ref_InformationSystem = map;
+    console.log('[RefTables] Ref_InformationSystem:', Object.keys(map).length, 'entries');
+  }).catch(e => console.warn('[RefTables] Ref_InformationSystem failed:', e.message));
+
+  // Ref_Licence → valeur (Licence)
+  fetchRefTable('Ref_Licence').then(data => {
+    const map = {};
+    for (let i = 0; i < data.id.length; i++) map[data.id[i]] = data.valeur?.[i] || String(data.id[i]);
+    refTables.Ref_Licence = map;
+    console.log('[RefTables] Ref_Licence:', Object.keys(map).length, 'entries');
+  }).catch(e => console.warn('[RefTables] Ref_Licence failed:', e.message));
+
+  // Ref_Utilisateur → "Prenom Nom" (Contact)
+  fetchRefTable('Ref_Utilisateur').then(data => {
+    const map = {};
+    for (let i = 0; i < data.id.length; i++) {
+      const prenom = data.Prenom?.[i] || '';
+      const nom = data.Nom?.[i] || '';
+      map[data.id[i]] = [prenom, nom].filter(Boolean).join(' ') || String(data.id[i]);
+    }
+    refTables.Ref_Utilisateur = map;
+    console.log('[RefTables] Ref_Utilisateur:', Object.keys(map).length, 'entries');
+  }).catch(e => console.warn('[RefTables] Ref_Utilisateur failed:', e.message));
+
+  // Ref_ContactPoint → Nom or Mail (Contact_Service)
+  fetchRefTable('Ref_ContactPoint').then(data => {
+    const map = {};
+    for (let i = 0; i < data.id.length; i++) {
+      map[data.id[i]] = data.Nom?.[i] || data.Mail?.[i] || String(data.id[i]);
+    }
+    refTables.Ref_ContactPoint = map;
+    console.log('[RefTables] Ref_ContactPoint:', Object.keys(map).length, 'entries');
+  }).catch(e => console.warn('[RefTables] Ref_ContactPoint failed:', e.message));
 }
 
 // Dynamic drop-down list populator drawing data straight from Grist records
@@ -413,38 +566,79 @@ function getBureauSigle(bureauId) {
 }
 
 // --- Data Normalization Helpers for Detail Panel ---
+// --- Data Normalization Helpers for Detail Panel ---
+
+/**
+ * Resolves Bureau_Producteur (Reference → Ref_Entite) to a human label.
+ * Priority: refTables cache → MOCK_ENTITIES fallback → raw value.
+ */
 function getBureauDisplay(bureauVal) {
   if (!bureauVal) return 'Non renseigné';
+
+  // Try resolving as a numeric Grist reference ID
+  const id = parseGristRefId(bureauVal);
+  if (id !== null && refTables.Ref_Entite[id]) return refTables.Ref_Entite[id];
+
+  // Grist sometimes passes the object with a label already attached
   if (typeof bureauVal === 'object') {
-    return bureauVal.label || bureauVal.Nom || bureauVal.Sigle || JSON.stringify(bureauVal);
+    return bureauVal.label || bureauVal.Nom || bureauVal.Sigle || String(id || JSON.stringify(bureauVal));
   }
+
+  // Standalone mode: look up in MOCK_ENTITIES by id, Nom or Sigle
   const ent = MOCK_ENTITIES.find(e => e.id === bureauVal || e.Nom === bureauVal || e.Sigle === bureauVal);
-  if (ent) {
-    return ent.Chemin || ent.Nom || ent.Sigle;
-  }
-  return bureauVal;
+  if (ent) return ent.Chemin || ent.Nom || ent.Sigle;
+
+  return String(bureauVal);
 }
 
-function formatReference(val) {
-  if (!val) return 'N/A';
+/**
+ * Resolves a single Grist Reference field to its display label.
+ * Needs the target ref-table name to look up in refTables.
+ * If refTableName is omitted, falls back to object property heuristics.
+ */
+function formatReference(val, refTableName) {
+  if (val === null || val === undefined || val === 0 || val === '') return 'N/A';
+
+  // Try numeric ID resolution through the cache
+  const id = parseGristRefId(val);
+  if (id !== null && refTableName && refTables[refTableName]?.[id]) {
+    return refTables[refTableName][id];
+  }
+
+  // Object with embedded label
   if (typeof val === 'object') {
-    return val.label || val.Nom || val.valeur || val.id || JSON.stringify(val);
+    return val.label || val.Nom || val.valeur || val.SI || String(val.id || JSON.stringify(val));
   }
-  return val;
+
+  return String(val);
 }
 
-function formatList(val) {
+/**
+ * Resolves a Grist ReferenceList / ChoiceList to comma-separated display labels.
+ * Needs the target ref-table name for ID resolution.
+ */
+function formatList(val, refTableName) {
   if (!val) return 'N/A';
+
+  // Handle Grist ReferenceList format ["L", id1, id2, ...] or [["R", table, id], ...]
   if (Array.isArray(val)) {
     if (val.length === 0) return 'N/A';
-    return val.map(item => {
-      if (typeof item === 'object') {
-        return item.label || item.valeur || item.SI || item.Nom || JSON.stringify(item);
-      }
-      return item;
-    }).join(', ');
+    const ids = parseGristRefListIds(val);
+    if (ids.length > 0 && refTableName) {
+      const labels = ids.map(id => refTables[refTableName]?.[id] || String(id));
+      return labels.join(', ');
+    }
+    // Fallback: map items to readable strings
+    return val
+      .filter(item => item !== 'L' && item !== null && item !== undefined)
+      .map(item => {
+        if (typeof item === 'object') return item.label || item.valeur || item.SI || item.Nom || JSON.stringify(item);
+        return String(item);
+      })
+      .join(', ') || 'N/A';
   }
-  return formatReference(val);
+
+  return formatReference(val, refTableName);
 }
 
 function formatDate(val) {
@@ -528,15 +722,15 @@ function openDetailPanel(recordId, syncWithGrist = true) {
   
   // Populate Level 1 - Identification
   document.getElementById('detail-bureau').textContent = getBureauDisplay(rec.Bureau_Producteur);
-  document.getElementById('detail-contact-service').textContent = formatReference(rec.Contact_Service);
+  document.getElementById('detail-contact-service').textContent = formatReference(rec.Contact_Service, 'Ref_ContactPoint');
   document.getElementById('detail-url').innerHTML = formatUrl(rec.URL);
   
   // Populate Level 2 - Classification
-  document.getElementById('detail-statut-publication').textContent = formatReference(rec.Statut_Publication);
-  document.getElementById('detail-sensibilite').textContent = formatList(rec.Niveau_Sensibilite);
-  document.getElementById('detail-domaine').textContent = formatReference(rec.Domaine_Fonctionnel || rec.Thematique);
-  document.getElementById('detail-langue').textContent = formatReference(rec.Langue);
-  document.getElementById('detail-couverture-geo').textContent = formatList(rec.Couverture_Geo);
+  document.getElementById('detail-statut-publication').textContent = formatReference(rec.Statut_Publication); // Choice, no ref table
+  document.getElementById('detail-sensibilite').textContent = formatList(rec.Niveau_Sensibilite);             // ChoiceList, no ref table
+  document.getElementById('detail-domaine').textContent = formatReference(rec.Domaine_Fonctionnel || rec.Thematique, 'Ref_Theme');
+  document.getElementById('detail-langue').textContent = formatReference(rec.Langue);                         // Choice, no ref table
+  document.getElementById('detail-couverture-geo').textContent = formatList(rec.Couverture_Geo, 'Ref_GeographicalCoverage');
   
   const dateDebut = formatDate(rec.Periode_de_couverture_Date_de_debut);
   const dateFin = formatDate(rec.Periode_de_couverture_Date_de_fin);
@@ -547,23 +741,23 @@ function openDetailPanel(recordId, syncWithGrist = true) {
   }
   
   // Populate Level 3 - Organisation
-  document.getElementById('detail-contact-principal').textContent = formatReference(rec.Contact);
+  document.getElementById('detail-contact-principal').textContent = formatReference(rec.Contact, 'Ref_Utilisateur');
   document.getElementById('detail-commanditaire').textContent = rec.Commanditaire || 'N/A';
-  document.getElementById('detail-frequence').textContent = formatReference(rec.Frequence_MaJ);
-  document.getElementById('detail-si').textContent = formatList(rec.Systeme_d_Information);
+  document.getElementById('detail-frequence').textContent = formatReference(rec.Frequence_MaJ, 'Ref_Frequency');
+  document.getElementById('detail-si').textContent = formatList(rec.Systeme_d_Information, 'Ref_InformationSystem');
   document.getElementById('detail-date-publication').textContent = formatDate(rec.Date_Publication);
   document.getElementById('detail-date-maj').textContent = formatDate(rec.Date_MaJ);
   
   // Populate Level 4 - Technique & Distribution
   document.getElementById('detail-url-telechargement').innerHTML = formatUrl(rec.URL_de_telechargement);
-  document.getElementById('detail-formats').textContent = formatList(rec.Format_Donnees);
-  document.getElementById('detail-licence').textContent = formatReference(rec.Licence);
+  document.getElementById('detail-formats').textContent = formatList(rec.Format_Donnees, 'Ref_Format');
+  document.getElementById('detail-licence').textContent = formatReference(rec.Licence, 'Ref_Licence');
   document.getElementById('detail-volumetrie').textContent = rec.Volumetrie_en_Mo_ ? `${rec.Volumetrie_en_Mo_} Mo` : 'N/A';
   document.getElementById('detail-open-data-badge').innerHTML = formatBool(rec.Donnees_ouvertes);
   document.getElementById('detail-url-open-data').innerHTML = formatUrl(rec.URL_Open_Data);
   
   // Populate Level 5 - Qualification
-  document.getElementById('detail-statut-qualification').textContent = formatReference(rec.Statut_Qualification);
+  document.getElementById('detail-statut-qualification').textContent = formatReference(rec.Statut_Qualification); // Choice
   
   // Toggle RGPD Exporter button visibility
   const rgpdBtn = document.getElementById('print-rgpd-btn');
