@@ -52,7 +52,7 @@ function initializeGristWidget() {
   
   try {
     grist.ready({
-      requiredAccess: 'read table',
+      requiredAccess: 'full',
       columns: [
         { name: 'Titre', type: 'Text' },
         { name: 'Description', type: 'Text' },
@@ -801,6 +801,37 @@ function setupDrawerActions() {
   });
   document.getElementById('print-rgpd-btn').addEventListener('click', () => {
     if (selectedRecord) printComplianceSheet('RGPD');
+  });
+
+  // Accordion polyfill — DSFR JS is blocked inside Grist's sandboxed iframe.
+  // This replicates the exact DSFR accordion behaviour without relying on dsfr.module.min.js.
+  setupAccordions();
+}
+
+/**
+ * Polyfills DSFR accordion behaviour.
+ * The DSFR JS init relies on a MutationObserver that never fires inside Grist iframes.
+ * We wire click handlers directly and toggle:
+ *   - aria-expanded  on the <button>
+ *   - fr-collapse--expanded  on the target <div class="fr-collapse">
+ */
+function setupAccordions() {
+  // Use event delegation on the detail panel so it also catches dynamically opened panels
+  const panel = document.getElementById('detail-panel');
+  if (!panel) return;
+
+  panel.addEventListener('click', (e) => {
+    const btn = e.target.closest('.fr-accordion__btn');
+    if (!btn) return;
+
+    const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+    const targetId = btn.getAttribute('aria-controls');
+    const collapseEl = targetId ? document.getElementById(targetId) : null;
+    if (!collapseEl) return;
+
+    // Toggle this accordion
+    btn.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
+    collapseEl.classList.toggle('fr-collapse--expanded', !isExpanded);
   });
 }
 

@@ -3,6 +3,28 @@
  * Custom layout mappings extending the French Government Design System (DSFR).
  */
 
+/*
+ * Accordion Polyfill — DSFR JS does not initialise inside Grist sandboxed iframes.
+ * These rules replicate the fr-collapse show/hide behaviour purely via CSS,
+ * using the fr-collapse--expanded class toggled by our vanilla JS polyfill.
+ */
+#detail-panel .fr-collapse {
+  overflow: hidden;
+  max-height: 0;
+  visibility: hidden;
+  transition: max-height 0.3s ease, visibility 0s linear 0.3s;
+}
+#detail-panel .fr-collapse--expanded {
+  max-height: 9999px; /* large enough for any content */
+  visibility: visible;
+  transition: max-height 0.35s ease, visibility 0s linear 0s;
+}
+
+/* Style the accordion button to look interactive */
+#detail-panel .fr-accordion__btn {
+  cursor: pointer;
+}
+
 /* Explicit DSFR Theme Color Overrides (Ensures correct light-theme rendering regardless of OS prefers-color-scheme) */
 :root[data-fr-theme="light"] {
   --background-flat-grey: #f6f6f6 !important;
